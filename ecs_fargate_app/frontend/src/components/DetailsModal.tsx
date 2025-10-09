@@ -8,6 +8,7 @@ import {
     Alert
 } from '@cloudscape-design/components';
 import CopyButton from './utils/CopyButton';
+import CodeBlock from './utils/CodeBlock';
 
 interface DetailsModalProps {
     visible: boolean;
@@ -72,7 +73,13 @@ export const DetailsModal: React.FC<DetailsModalProps> = ({
                         {error}
                     </Alert>
                 )}
-                <ReactMarkdown>{content}</ReactMarkdown>
+                <ReactMarkdown
+                    components={{
+                        code: CodeBlock
+                    }}
+                >
+                    {content}
+                </ReactMarkdown>
             </Box>
         </Modal>
     );
