@@ -15,14 +15,20 @@ export default () => ({
     region: process.env.AWS_REGION || process.env.CDK_DEPLOY_REGION,
     s3: {
       waDocsBucket: process.env.WA_DOCS_S3_BUCKET,
+      vectorsBucket: process.env.VECTORS_BUCKET,
     },
     bedrock: {
       knowledgeBaseId: process.env.KNOWLEDGE_BASE_ID,
       modelId: process.env.MODEL_ID,
+      embeddingModel: process.env.EMBEDDING_MODEL || 'amazon.titan-embed-text-v2:0',
+      embeddingDimensions: parseInt(process.env.EMBEDDING_DIMENSIONS || '1024'),
     },
     ddb: {
       lensMetadataTable: process.env.LENS_METADATA_TABLE,
     }    
+  },
+  features: {
+    useVectorSearch: process.env.USE_VECTOR_SEARCH === 'true',
   },
   // Language configuration for output
   language: {

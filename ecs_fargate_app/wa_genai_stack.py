@@ -450,6 +450,15 @@ class WAGenAIStack(Stack):
             enforce_ssl=True,
         )
 
+        # Create S3 bucket for vector storage
+        vectors_bucket = s3.Bucket(
+            self,
+            "VectorStorageBucket",
+            removal_policy=RemovalPolicy.DESTROY,
+            auto_delete_objects=True,
+            enforce_ssl=True,
+        )
+
         # Uploading WAFR docs to the corresponding S3 bucket [wafrReferenceDocsBucket]
         wafrReferenceDeploy = s3deploy.BucketDeployment(
             self,
@@ -536,6 +545,42 @@ class WAGenAIStack(Stack):
             policy=cr.AwsCustomResourcePolicy.from_sdk_calls(
                 resources=cr.AwsCustomResourcePolicy.ANY_RESOURCE
             ),
+        )
+
+        # Create vector processor Lambda
+        vector_processor = lambda_.Function(
+            self,
+            "VectorProcessor",
+            runtime=lambda_.Runtime.PYTHON_3_12,
+            handler="vector_processor.handler",
+            code=lambda_.Code.from_asset(
+                "ecs_fargate_app/lambda_vector_processor",
+                bundling=cdk.BundlingOptions(
+                    image=lambda_.Runtime.PYTHON_3_12.bundling_image,
+                    command=[
+                        "bash",
+                        "-c",
+                        "pip install --no-cache -r requirements.txt -t /asset-output && cp -au . /asset-output",
+                    ],
+                ),
+            ),
+            environment={
+                "VECTORS_BUCKET": vectors_bucket.bucket_name,
+                "SOURCE_BUCKET": wafrReferenceDocsBucket.bucket_name,
+                "EMBEDDING_MODEL": "amazon.titan-embed-text-v2:0",
+                "EMBEDDING_DIMENSIONS": "1024",
+            },
+            timeout=Duration.minutes(15),
+        )
+
+        # Grant permissions to vector processor
+        vectors_bucket.grant_read_write(vector_processor)
+        wafrReferenceDocsBucket.grant_read(vector_processor)
+        vector_processor.add_to_role_policy(
+            iam.PolicyStatement(
+                actions=["bedrock:InvokeModel"],
+                resources=["*"]
+            )
         )
 
         # Lambda function to refresh and sync Knowledge Base with data source
@@ -754,6 +799,17 @@ class WAGenAIStack(Stack):
                 resources=[
                     lens_metadata_table.table_arn,
                     f"{lens_metadata_table.table_arn}/index/*",
+                ],
+            )
+        )
+
+        # Grant backend access to vectors bucket
+        app_execute_role.add_to_policy(
+            iam.PolicyStatement(
+                actions=["s3:GetObject", "s3:ListBucket"],
+                resources=[
+                    vectors_bucket.bucket_arn,
+                    f"{vectors_bucket.bucket_arn}/*",
                 ],
             )
         )
@@ -1000,6 +1056,18 @@ class WAGenAIStack(Stack):
         backend_container.add_environment(
             "LENS_METADATA_TABLE", lens_metadata_table.table_name
         )
+        backend_container.add_environment(
+            "VECTORS_BUCKET", vectors_bucket.bucket_name
+        )
+        backend_container.add_environment(
+            "EMBEDDING_MODEL", "amazon.titan-embed-text-v2:0"
+        )
+        backend_container.add_environment(
+            "EMBEDDING_DIMENSIONS", "1024"
+        )
+        backend_container.add_environment(
+            "USE_VECTOR_SEARCH", "false"
+        )
 
         # Create the backend service
         backend_service = ecs.FargateService(
@@ -1195,6 +1263,22 @@ class WAGenAIStack(Stack):
             "LensMetadataTableName",
             value=lens_metadata_table.table_name,
             description="DynamoDB table for lens metadata",
+        )
+
+        # Output vectors bucket name
+        cdk.CfnOutput(
+            self,
+            "VectorsBucketName",
+            value=vectors_bucket.bucket_name,
+            description="S3 bucket for vector storage",
+        )
+
+        # Output vector processor Lambda function name
+        cdk.CfnOutput(
+            self,
+            "VectorProcessorFunctionName",
+            value=vector_processor.function_name,
+            description="Lambda function for processing vectors",
         )
 
         # Node dependencies
