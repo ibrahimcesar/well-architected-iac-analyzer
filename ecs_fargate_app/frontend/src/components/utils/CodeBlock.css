@@ -1,0 +1,24 @@
+/* CodeBlock styles */
+.code-block-container {
+  margin: 16px 0;
+}
+
+.code-block-container pre {
+  margin: 0 !important;
+  border-radius: 6px !important;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+}
+
+.code-block-container code {
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace !important;
+}
+
+/* Inline code styling */
+.inline-code {
+  background-color: #f6f8fa;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 85%;
+  font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+  border: 1px solid #e1e4e8;
+}
