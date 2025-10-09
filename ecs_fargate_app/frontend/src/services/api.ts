@@ -13,19 +13,19 @@ const api = axios.create({
 const handleError = (error: unknown) => {
   if (axios.isAxiosError(error)) {
     const axiosError = error as AxiosError<{ message: string }>;
-    
+
     // Check for network interruption errors
-    if (axiosError.message.includes('Network Error') || 
-        axiosError.message.includes('ERR_NETWORK') ||
-        axiosError.code === 'ERR_NETWORK' ||
-        !axiosError.response) {
+    if (axiosError.message.includes('Network Error') ||
+      axiosError.message.includes('ERR_NETWORK') ||
+      axiosError.code === 'ERR_NETWORK' ||
+      !axiosError.response) {
       return new Error(
         'NETWORK_INTERRUPTION: Network connection was interrupted. ' +
         'Your analysis is likely still running in the background. ' +
         'Please check the side navigation panel to load your results.'
       );
     }
-    
+
     return new Error(
       axiosError.response?.data?.message ||
       axiosError.message ||
@@ -51,7 +51,7 @@ export const analyzerApi = {
       if (!lensAliasArn) {
         return; // Skip if no lens alias provided
       }
-      
+
       await api.post(`/well-architected/associate-lens/${workloadId}`, {
         lensAliasArn
       });
@@ -150,7 +150,7 @@ export const analyzerApi = {
 
   async generateReport(workloadId: string, lensAliasArn?: string): Promise<string> {
     try {
-      const response = await api.post('/report/generate', { 
+      const response = await api.post('/report/generate', {
         workloadId,
         lensAliasArn
       });
@@ -269,6 +269,15 @@ export const analyzerApi = {
         lensName,
         lensAliasArn
       });
+      return response.data;
+    } catch (error) {
+      throw handleError(error);
+    }
+  },
+
+  async listWorkloads(): Promise<any[]> {
+    try {
+      const response = await api.get('/well-architected/workloads');
       return response.data;
     } catch (error) {
       throw handleError(error);

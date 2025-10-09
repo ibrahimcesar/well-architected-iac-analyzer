@@ -30,6 +30,16 @@ export const SUPPORTED_LANGUAGES: Language[] = [
     name: 'Spanish',
     nativeName: 'Español'
   },
+  {
+    code: 'pt_BR',
+    name: 'Brazilian Portuguese',
+    nativeName: 'Português Brasileiro'
+  },
+  {
+    code: 'fr',
+    name: 'French',
+    nativeName: 'Français'
+  }
   // Add more languages here
   // Example: Spanish
   // {

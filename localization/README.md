@@ -3,16 +3,23 @@
 This guide explains how to add new language translations to the Well-Architected IaC Analyzer application. The application uses a centralized approach to manage language configurations, making it straightforward to add support for new languages.
 
 ## Table of Contents
-- [Overview](#overview)
-- [File Structure](#file-structure)
-- [Adding a New Language](#adding-a-new-language)
-  - [Step 1: Update Frontend Language Configuration](#step-1-update-frontend-language-configuration)
-  - [Step 2: Update Backend Language Configuration](#step-2-update-backend-language-configuration)
-  - [Step 3: Add Language Translations](#step-3-add-language-translations)
-  - [Step 4: Test Your Changes](#step-4-test-your-changes)
-  - [Step 5: Create a Pull Request](#step-5-create-a-pull-request)
-- [Translation Best Practices](#translation-best-practices)
-- [Common Issues](#common-issues)
+- [Internationalization (i18n) Guide](#internationalization-i18n-guide)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+  - [File Structure](#file-structure)
+    - [Frontend](#frontend)
+    - [Backend](#backend)
+  - [Adding a New Language](#adding-a-new-language)
+    - [Step 1: Update Frontend Language Configuration](#step-1-update-frontend-language-configuration)
+    - [Step 2: Update Backend Language Configuration](#step-2-update-backend-language-configuration)
+    - [Step 3: Add Language Translations](#step-3-add-language-translations)
+    - [Step 4: Test Your Changes](#step-4-test-your-changes)
+    - [Step 5: Create a Pull Request](#step-5-create-a-pull-request)
+  - [Translation Best Practices](#translation-best-practices)
+  - [Common Issues](#common-issues)
+    - [Missing Translations](#missing-translations)
+    - [Character Set Issues](#character-set-issues)
+    - [RTL Language Support](#rtl-language-support)
 
 ## Overview
 
@@ -22,6 +29,8 @@ Currently, the application supports:
 - English (en) - Default
 - Japanese (ja)
 - Spanish (es)
+- Brazilian Portuguese (pt-BR)
+- French (fr)
 
 ## File Structure
 

@@ -77,8 +77,8 @@ export class WellArchitectedController {
   @Post('answer/:workloadId')
   async updateAnswer(
     @Param('workloadId') workloadId: string,
-    @Body() body: { 
-      questionId: string; 
+    @Body() body: {
+      questionId: string;
       selectedChoices: string[];
       notApplicableChoices?: string[];
       notSelectedChoices: string[];
@@ -141,6 +141,19 @@ export class WellArchitectedController {
       this.logger.error(`Failed to delete workload ${workloadId}:`, error);
       throw new HttpException(
         `Failed to delete workload: ${error.message || error}`,
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
+  }
+
+  @Get('workloads')
+  async listWorkloads() {
+    try {
+      return await this.waService.listWorkloads();
+    } catch (error) {
+      this.logger.error('Failed to list workloads:', error);
+      throw new HttpException(
+        `Failed to list workloads: ${error.message || error}`,
         HttpStatus.INTERNAL_SERVER_ERROR
       );
     }

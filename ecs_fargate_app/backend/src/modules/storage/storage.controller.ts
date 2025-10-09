@@ -29,7 +29,9 @@ export class StorageController {
     ) { }
 
     private getUserId(email: string): string {
-        return createHash('sha256').update(email).digest('hex');
+        // Trim and lowercase email before hashing to ensure consistency
+        const normalizedEmail = email.trim().toLowerCase();
+        return createHash('sha256').update(normalizedEmail).digest('hex');
     }
 
     private getUserEmail(userDataHeader: string): string | null {
@@ -201,37 +203,6 @@ export class StorageController {
         } catch (error) {
             throw new HttpException(
                 error.message || 'Failed to get supporting document',
-                HttpStatus.INTERNAL_SERVER_ERROR,
-            );
-        }
-    }
-
-    @Post('work-items/upload')
-    @UseInterceptors(FileInterceptor('file'))
-    async uploadFile(
-        @UploadedFile() file: Express.Multer.File,
-        @Headers('x-amzn-oidc-data') userDataHeader: string,
-    ) {
-        try {
-            const email = this.getUserEmail(userDataHeader);
-            if (!email) {
-                throw new HttpException('User not authenticated', HttpStatus.UNAUTHORIZED);
-            }
-
-            const userId = this.storageService.createUserIdHash(email);
-
-            const workItem = await this.storageService.createWorkItem(
-                userId,
-                file.originalname,
-                file.mimetype,
-                file.buffer,
-                FileUploadMode.SINGLE_FILE,
-            );
-
-            return { fileId: workItem.fileId };
-        } catch (error) {
-            throw new HttpException(
-                error.message || 'Failed to upload file',
                 HttpStatus.INTERNAL_SERVER_ERROR,
             );
         }

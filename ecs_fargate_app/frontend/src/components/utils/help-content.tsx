@@ -176,9 +176,9 @@ export const helpContent = {
                     The Workload ID connects your analysis with AWS Well-Architected Tool:
                 </Box>
                 <ul>
-                    <li>Optional: Leave empty to create a new workload</li>
-                    <li>Enter existing ID to update an existing workload</li>
-                    <li>Found in AWS Well-Architected Tool console</li>
+                    <li>Optional: Don't select any specific workload to create a new one</li>
+                    <li>Select an existing ID to update an existing workload</li>
+                    <li>Workloads are found in AWS Well-Architected Tool console</li>
                 </ul>
                 <Link external href="https://docs.aws.amazon.com/wellarchitected/latest/userguide/define-workload.html">
                     Learn more about Well-Architected workloads

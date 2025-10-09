@@ -101,26 +101,6 @@ export const storageApi = {
     }
   },
 
-  async uploadFile(file: File): Promise<{ fileId: string }> {
-    try {
-      // Create FormData
-      const formData = new FormData();
-      formData.append('file', file);
-
-      const response = await api.post('/work-items/upload', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      });
-
-      return response.data;
-    } catch (error) {
-      throw new Error(
-        error instanceof Error ? error.message : 'Failed to upload file'
-      );
-    }
-  },
-
   async deleteWorkItem(fileId: string): Promise<void> {
     try {
       await api.delete(`/work-items/${fileId}`);

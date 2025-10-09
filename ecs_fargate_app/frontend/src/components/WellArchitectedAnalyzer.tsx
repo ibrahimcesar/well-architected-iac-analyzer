@@ -1006,10 +1006,10 @@ export const WellArchitectedAnalyzer: React.FC<Props> = ({ onWorkItemsRefreshNee
                   content: (
                     <SpaceBetween direction="vertical" size="l">
                       <WorkloadIdInput
-                        value={workloadId || ''}
+                        value={workloadId || currentLensWorkloadId || ''}
                         onChange={setWorkloadId}
                         optional={true}
-                        disabled={!!createdWorkloadId}
+                        disabled={false}
                       />
                     </SpaceBetween>
                   )
