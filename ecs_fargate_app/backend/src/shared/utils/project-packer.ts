@@ -2,7 +2,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 import * as AdmZip from 'adm-zip';
-import { execSync } from 'child_process';
+
 import { ProjectFile, PackedProject } from '../interfaces/project-file.interface';
 import { Logger } from '@nestjs/common';
 
@@ -58,47 +58,79 @@ export class ProjectPacker {
      */
     private generateDirectoryTree(dirPath: string): string {
         try {
-            const excludePatternsArg = this.excludePatterns.join('|');
-            const command = `find ${dirPath} -type d -name .git -prune -o -type f -not -path "*/\\.*" | sort`;
-            const output = execSync(command, { encoding: 'utf8' });
-
-            // Process output to create a more readable tree
-            let result = '';
-            const baseDir = path.basename(dirPath);
-            result += `${baseDir}\n`;
-            result += '.';
-
-            const lines = output.split('\n')
-                .filter(line => line.trim())
-                .map(line => line.replace(dirPath, ''));
-
-            const processedLines: string[] = [];
-            lines.forEach(line => {
-                const segments = line.split('/').filter(s => s);
-                if (segments.length > 0) {
-                    let depth = 0;
-                    let lineOutput = '';
-
-                    segments.forEach((segment, index) => {
-                        if (index < segments.length - 1) {
-                            lineOutput += '│   '.repeat(depth) + '├── ' + segment + '\n';
-                            lineOutput += '│   '.repeat(depth + 1);
-                        } else {
-                            lineOutput += '│   '.repeat(depth) + '└── ' + segment;
-                        }
-                        depth++;
-                    });
-
-                    processedLines.push(lineOutput);
-                }
-            });
-
-            result += processedLines.join('\n');
-            return result;
+            const files = this.getFilesRecursively(dirPath);
+            return this.formatAsTree(files, dirPath);
         } catch (error) {
             this.logger.error(`Error generating directory tree: ${error}`);
             return `${path.basename(dirPath)} (directory tree generation failed)`;
         }
+    }
+
+    /**
+     * Recursively gets all files from a directory, excluding patterns
+     * @param dirPath Directory path
+     * @returns Array of file paths relative to dirPath
+     */
+    private getFilesRecursively(dirPath: string): string[] {
+        const files: string[] = [];
+
+        const traverse = (currentPath: string) => {
+            const entries = fs.readdirSync(currentPath);
+
+            for (const entry of entries) {
+                const fullPath = path.join(currentPath, entry);
+                const relativePath = path.relative(dirPath, fullPath);
+
+                // Skip excluded patterns
+                if (this.excludePatterns.some(pattern => relativePath.includes(pattern))) {
+                    continue;
+                }
+
+                // Skip hidden files/directories
+                if (entry.startsWith('.')) {
+                    continue;
+                }
+
+                const stats = fs.statSync(fullPath);
+                if (stats.isDirectory()) {
+                    traverse(fullPath);
+                } else {
+                    files.push(relativePath);
+                }
+            }
+        };
+
+        traverse(dirPath);
+        return files.sort();
+    }
+
+    /**
+     * Formats file paths as a tree structure
+     * @param files Array of file paths
+     * @param basePath Base directory path
+     * @returns Formatted tree string
+     */
+    private formatAsTree(files: string[], basePath: string): string {
+        const baseDir = path.basename(basePath);
+        let result = `${baseDir}\n.`;
+
+        files.forEach(file => {
+            const segments = file.split(path.sep).filter(s => s);
+            let currentPath = '';
+            
+            segments.forEach((segment, index) => {
+                const depth = index;
+                const isLast = index === segments.length - 1;
+                const prefix = '│   '.repeat(depth) + (isLast ? '└── ' : '├── ');
+                
+                if (index === 0 || !result.includes(currentPath + segment)) {
+                    result += '\n' + prefix + segment;
+                }
+                currentPath += segment + '/';
+            });
+        });
+
+        return result;
     }
 
     /**
