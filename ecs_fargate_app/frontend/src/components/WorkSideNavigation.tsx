@@ -13,6 +13,7 @@ import type { SideNavigationProps } from '@cloudscape-design/components/side-nav
 import { useAuth } from '../contexts/AuthContext';
 import { storageApi } from '../services/storage';
 import { WorkItem, WorkItemStatus } from '../types';
+import { useLanguage } from '../contexts/LanguageContext';
 
 export interface WorkSideNavigationProps {
   activeFileId?: string;
@@ -45,6 +46,7 @@ export const WorkSideNavigation = forwardRef<WorkSideNavigationRef, WorkSideNavi
   const [deletingChatHistoryId, setDeletingChatHistoryId] = useState<string | null>(null);
   const [deleteChatModalVisible, setDeleteChatModalVisible] = useState(false);
   const [chatToDelete, setChatToDelete] = useState<WorkItem | null>(null);
+  const { strings } = useLanguage();
 
   // Helper function to determine badge color based on analysis status
   const getBadgeColor = (status?: WorkItemStatus): BadgeProps['color'] => {
@@ -213,7 +215,7 @@ export const WorkSideNavigation = forwardRef<WorkSideNavigationRef, WorkSideNavi
         // Lenses section with badges for each lens
         {
           type: 'link' as const,
-          text: 'Lenses:',
+          text: `${strings.leftPanel.lenses}`,
           href: `/lenses/${item.fileId}`,
           key: `lenses-${item.fileId}`,
           info: (
@@ -232,7 +234,7 @@ export const WorkSideNavigation = forwardRef<WorkSideNavigationRef, WorkSideNavi
         // Load results - prioritize wellarchitected lens or first lens alphabetically
         {
           type: 'link' as const,
-          text: 'Load results:',
+          text: `${strings.leftPanel.loadResults}`,
           href: `/load/${item.fileId}`,
           key: `load-${item.fileId}`,
           info: (
@@ -280,7 +282,7 @@ export const WorkSideNavigation = forwardRef<WorkSideNavigationRef, WorkSideNavi
         // Original file download
         {
           type: 'link' as const,
-          text: 'Download original file:',
+          text: `${strings.leftPanel.downloadOriginalFile}`,
           href: `/download/${item.fileId}`,
           key: `download-${item.fileId}`,
           info: (
@@ -296,7 +298,7 @@ export const WorkSideNavigation = forwardRef<WorkSideNavigationRef, WorkSideNavi
         // Chat history
         {
           type: 'link' as const,
-          text: 'Chat history:',
+          text: `${strings.leftPanel.chatHistory}`,
           href: `/chat-history/${item.fileId}`,
           key: `chat-history-${item.fileId}`,
           info: (
@@ -327,7 +329,7 @@ export const WorkSideNavigation = forwardRef<WorkSideNavigationRef, WorkSideNavi
         // Delete work item
         {
           type: 'link' as const,
-          text: 'Delete work item:',
+          text: `${strings.leftPanel.deleteWorkItem}`,
           href: `/delete/${item.fileId}`,
           key: `delete-${item.fileId}`,
           info: (
@@ -390,7 +392,7 @@ export const WorkSideNavigation = forwardRef<WorkSideNavigationRef, WorkSideNavi
     <>
       <SideNavigation
         header={{
-          text: 'My Work Items',
+          text: `${strings.leftPanel.myWorkItems}`,
           href: '#'
         }}
         items={navigationItems}
@@ -406,14 +408,14 @@ export const WorkSideNavigation = forwardRef<WorkSideNavigationRef, WorkSideNavi
             loadWorkItems();
           }}
         >
-          Reload Work Items
+          {strings.leftPanel.reloadWorkItems}
         </Button>}
       />
 
       <Modal
         visible={deleteModalVisible}
         onDismiss={() => setDeleteModalVisible(false)}
-        header="Delete Work Item"
+        header={strings.leftPanel.deleteWorkItemModal.title}
         footer={
           <Box float="right">
             <SpaceBetween direction="horizontal" size="xs">
@@ -423,7 +425,7 @@ export const WorkSideNavigation = forwardRef<WorkSideNavigationRef, WorkSideNavi
                 variant="link"
                 disabled={deletingFileId !== null}
               >
-                Cancel
+                {strings.leftPanel.deleteWorkItemModal.cancel}
               </Button>
               <Button
                 key="delete-button"
@@ -431,7 +433,7 @@ export const WorkSideNavigation = forwardRef<WorkSideNavigationRef, WorkSideNavi
                 variant="primary"
                 loading={deletingFileId !== null}
               >
-                Delete
+                {strings.leftPanel.deleteWorkItemModal.delete}
               </Button>
             </SpaceBetween>
           </Box>
@@ -439,8 +441,8 @@ export const WorkSideNavigation = forwardRef<WorkSideNavigationRef, WorkSideNavi
       >
         <SpaceBetween size="m">
           <Box key="delete-message" variant="p">
-            Are you sure you want to delete the work item "{itemToDelete?.fileName}"?
-            This action cannot be undone.
+            {strings.leftPanel.deleteWorkItemModal.message}
+            {strings.leftPanel.deleteWorkItemModal.warning}
           </Box>
           {itemToDelete && (
             <SpaceBetween key="status-indicators" size="xs">
@@ -448,7 +450,7 @@ export const WorkSideNavigation = forwardRef<WorkSideNavigationRef, WorkSideNavi
                 <StatusIndicator 
                   key={`analysis-status-${lens.lensAlias}`} 
                   type={itemToDelete.analysisPartialResults?.[lens.lensAlias] ? "warning" : "info"}>
-                  {lens.lensName} Analysis Status: {itemToDelete.analysisStatus?.[lens.lensAlias] || 'NOT_STARTED'}
+                  {lens.lensName} {strings.leftPanel.deleteWorkItemModal.status} {itemToDelete.analysisStatus?.[lens.lensAlias] || 'NOT_STARTED'}
                   {itemToDelete.analysisPartialResults?.[lens.lensAlias] ? " (Partial Results)" : ""}
                 </StatusIndicator>
               ))}
@@ -460,7 +462,7 @@ export const WorkSideNavigation = forwardRef<WorkSideNavigationRef, WorkSideNavi
       <Modal
         visible={deleteChatModalVisible}
         onDismiss={() => setDeleteChatModalVisible(false)}
-        header="Delete Chat History"
+        header={strings.leftPanel.deleteChatHistoryModal.title}
         footer={
           <Box float="right">
             <SpaceBetween direction="horizontal" size="xs">
@@ -470,7 +472,7 @@ export const WorkSideNavigation = forwardRef<WorkSideNavigationRef, WorkSideNavi
                 variant="link"
                 disabled={deletingChatHistoryId !== null}
               >
-                Cancel
+                {strings.leftPanel.deleteChatHistoryModal.cancel}
               </Button>
               <Button
                 key="delete-button"
@@ -478,7 +480,7 @@ export const WorkSideNavigation = forwardRef<WorkSideNavigationRef, WorkSideNavi
                 variant="primary"
                 loading={deletingChatHistoryId !== null}
               >
-                Delete
+                {strings.leftPanel.deleteChatHistoryModal.delete}
               </Button>
             </SpaceBetween>
           </Box>
@@ -486,8 +488,8 @@ export const WorkSideNavigation = forwardRef<WorkSideNavigationRef, WorkSideNavi
       >
         <SpaceBetween size="m">
           <Box key="delete-message" variant="p">
-            Are you sure you want to delete the chat history for "{chatToDelete?.fileName}"?
-            This action cannot be undone.
+            {strings.leftPanel.deleteChatHistoryModal.message}
+            {strings.leftPanel.deleteChatHistoryModal.warning}
           </Box>
         </SpaceBetween>
       </Modal>

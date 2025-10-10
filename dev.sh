@@ -190,6 +190,10 @@ load_env_file() {
         while IFS= read -r line || [ -n "$line" ]; do
             # Skip comments and empty lines
             if [[ $line =~ ^[^#].+=.+ ]]; then
+                # Trim trailing whitespace and carriage returns
+                line="${line%"${line##*[![:space:]]}"}"  # Remove trailing whitespace
+                line="${line%$'\r'}"  # Remove trailing carriage return if present
+                
                 # Export the variable
                 export "${line?}"
             fi

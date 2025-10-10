@@ -8,6 +8,8 @@ import {
   CreateWorkloadCommand,
   DeleteWorkloadCommand,
   AssociateLensesCommand,
+  paginateListWorkloads,
+  WorkloadSummary
 } from '@aws-sdk/client-wellarchitected';
 import { randomBytes, randomUUID } from 'crypto';
 import { ConfigService } from '@nestjs/config';
@@ -30,7 +32,7 @@ export class WellArchitectedService {
   constructor(
     private readonly awsConfig: AwsConfigService,
     private readonly configService: ConfigService,
-  ) { 
+  ) {
     this.dynamoClient = this.awsConfig.createDynamoDBClient();
     this.lensMetadataTable = this.configService.get<string>('aws.ddb.lensMetadataTable');
   }
@@ -42,7 +44,7 @@ export class WellArchitectedService {
       });
 
       const response = await this.dynamoClient.send(command);
-      
+
       if (!response.Items || response.Items.length === 0) {
         return [];
       }
@@ -50,7 +52,7 @@ export class WellArchitectedService {
       // Convert DynamoDB items to plain JavaScript objects
       return response.Items.map(item => {
         const unmarshalledItem = unmarshall(item);
-        
+
         // Convert lensPillars from a record with nested properties to a simple key-value map
         if (unmarshalledItem.lensPillars && typeof unmarshalledItem.lensPillars === 'object') {
           const simplifiedPillars = {};
@@ -63,7 +65,7 @@ export class WellArchitectedService {
           });
           unmarshalledItem.lensPillars = simplifiedPillars;
         }
-        
+
         return unmarshalledItem;
       });
     } catch (error) {
@@ -89,14 +91,14 @@ export class WellArchitectedService {
 
   async listAnswers(workloadId: string, pillarId: string, lensAlias?: string) {
     const waClient = this.awsConfig.createWAClient();
-    
+
     try {
       // Initialize response object with the workload ID
       const completeResponse = {
         WorkloadId: workloadId,
         AnswerSummaries: [],
       };
-      
+
       const paginator = paginateListAnswers(
         { client: waClient },
         {
@@ -105,14 +107,14 @@ export class WellArchitectedService {
           PillarId: pillarId,
         }
       );
-      
+
       for await (const page of paginator) {
         // Add all answer summaries from this page
         if (page.AnswerSummaries) {
           completeResponse.AnswerSummaries.push(...page.AnswerSummaries);
         }
       }
-      
+
       return completeResponse;
     } catch (error) {
       this.logger.error(`Error listing answers for workload ${workloadId}:`, error);
@@ -121,28 +123,28 @@ export class WellArchitectedService {
   }
 
   async updateAnswer(
-    workloadId: string, 
-    questionId: string, 
+    workloadId: string,
+    questionId: string,
     selectedChoices: string[],
     notApplicableChoices: string[] = [],
     notSelectedChoices: string[],
     lensAliasArn?: string
   ) {
     const waClient = this.awsConfig.createWAClient();
-    
+
     // Create ChoiceUpdates using our defined interface
     const choiceUpdates: Record<string, ChoiceUpdate> = {};
-    
+
     // Add each non-applicable choice to the choiceUpdates object with the string literal
     notApplicableChoices.forEach(choiceId => {
-      choiceUpdates[choiceId] = { 
+      choiceUpdates[choiceId] = {
         Status: 'NOT_APPLICABLE'
       };
     });
 
     // Add each not-selected/not-applied choice to the choiceUpdates object with the string literal
     notSelectedChoices.forEach(choiceId => {
-      choiceUpdates[choiceId] = { 
+      choiceUpdates[choiceId] = {
         Status: 'UNSELECTED'
       };
     });
@@ -150,7 +152,7 @@ export class WellArchitectedService {
     // Create an UpdateAnswerCommand with the appropriate parameters
     const params: any = {
       WorkloadId: workloadId,
-      LensAlias: lensAliasArn || this.lensAliasArn, 
+      LensAlias: lensAliasArn || this.lensAliasArn,
       QuestionId: questionId,
       SelectedChoices: selectedChoices,
       Notes: 'Updated from WA IaC Analyzer app'
@@ -190,14 +192,14 @@ export class WellArchitectedService {
     try {
       // Use the provided lens alias or default to wellarchitected
       const usedLensAliasArn = lensAliasArn || this.lensAliasArn;
-      
+
       // Get lens review for the selected lens
       const waClient = this.awsConfig.createWAClient();
       const command = new GetLensReviewCommand({
         WorkloadId: workloadId,
         LensAlias: usedLensAliasArn,
       });
-      
+
       const review = await waClient.send(command);
       const summaries = [];
 
@@ -244,7 +246,7 @@ export class WellArchitectedService {
 
   async createWorkload(isTemp: boolean = false, lensAliasArn?: string): Promise<string> {
     const waClient = this.awsConfig.createWAClient();
-    
+
     const now = new Date();
     const timestamp = now.toLocaleString('en-AU', {
       year: 'numeric',
@@ -264,7 +266,7 @@ export class WellArchitectedService {
 
     // Always include wellarchitected lens
     const lenses = ['wellarchitected'];
-    
+
     // Add the specified lens if it's different from wellarchitected
     if (lensAliasArn && lensAliasArn !== 'arn:aws:wellarchitected::aws:lens/wellarchitected') {
       lenses.push(lensAliasArn);
@@ -298,7 +300,7 @@ export class WellArchitectedService {
       // wellarchitected lens is already associated by default
       return;
     }
-    
+
     const waClient = this.awsConfig.createWAClient();
     const command = new AssociateLensesCommand({
       WorkloadId: workloadId,
@@ -325,6 +327,36 @@ export class WellArchitectedService {
     } catch (error) {
       this.logger.error(`Error deleting workload: ${error}`);
       throw new Error(error);
+    }
+  }
+
+  async listWorkloads(): Promise<WorkloadSummary[]> {
+    const waClient = this.awsConfig.createWAClient();
+
+    try {
+      const allWorkloads: WorkloadSummary[] = [];
+
+      const paginator = paginateListWorkloads(
+        { client: waClient },
+        {}
+      );
+
+      for await (const page of paginator) {
+        if (page.WorkloadSummaries) {
+          allWorkloads.push(...page.WorkloadSummaries);
+        }
+      }
+
+      // Sort workloads by name for better user experience
+      return allWorkloads.sort((a, b) => {
+        if (a.WorkloadName && b.WorkloadName) {
+          return a.WorkloadName.localeCompare(b.WorkloadName);
+        }
+        return 0;
+      });
+    } catch (error) {
+      this.logger.error('Error listing workloads:', error);
+      throw new Error(`Failed to list workloads: ${error.message}`);
     }
   }
 }

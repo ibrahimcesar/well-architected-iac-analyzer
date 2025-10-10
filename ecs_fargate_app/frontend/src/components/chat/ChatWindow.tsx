@@ -11,6 +11,7 @@ import { SupportPrompt } from './types';
 import Spinner from '@cloudscape-design/components/spinner';
 import Box from '@cloudscape-design/components/box';
 import { Icon } from '@cloudscape-design/components';
+import { useLanguage } from '../../contexts/LanguageContext';
 import './styles.css';
 
 interface ChatWindowProps {
@@ -26,6 +27,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ isAnalysisComplete, file
     const [supportPrompts, setSupportPrompts] = useState<SupportPrompt[]>([]);
     const [isExpanded, setIsExpanded] = useState(false);
     const [animationState, setAnimationState] = useState('');
+    const { strings } = useLanguage();
 
     // Default and expanded size configurations
     const defaultSize = {
@@ -293,7 +295,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ isAnalysisComplete, file
                     <div className="chat-window-header">
                         <h3 className="chat-window-title">
                             <img src="/aws-wa-logo.png" alt="AWS Well-Architected logo" />
-                            Analyzer Assistant
+                            {strings.chat.analyzerAssistant}
                         </h3>
                         <div className="chat-window-controls">
                             <button
@@ -322,7 +324,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ isAnalysisComplete, file
                                     value={inputValue}
                                     onChange={({ detail }) => setInputValue(detail.value)}
                                     onAction={handleSend}
-                                    placeholder={`Ask about your results or ${lensName} best practices...`}
+                                    placeholder={`${strings.chat.askAboutYourResults} [${lensName}]`}
                                     disabled={isSendingMessage || !fileId}
                                     actionButtonAriaLabel="Send message"
                                     actionButtonIconName="send"
@@ -339,7 +341,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ isAnalysisComplete, file
                                         <Box padding="l" textAlign="center">
                                             <Spinner size="normal" />
                                             <Box padding={{ top: 'xs' }} color="text-body-secondary">
-                                                Loading conversation...
+                                                {strings.chat.loadingConversation}
                                             </Box>
                                         </Box>
                                     </div>

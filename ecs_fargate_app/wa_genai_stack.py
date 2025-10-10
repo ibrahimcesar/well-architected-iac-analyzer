@@ -658,6 +658,7 @@ class WAGenAIStack(Stack):
                     "wellarchitected:CreateMilestone",
                     "wellarchitected:GetLensReviewReport",
                     "wellarchitected:AssociateLenses",
+                    "wellarchitected:ListWorkloads",
                 ],
                 resources=["*"],
             )

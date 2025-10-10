@@ -18,7 +18,7 @@ Additionally, an **interactive Analyzer Assistant chatbot** enables users to ask
 ---
 - **NEW** ** Language Localization Support:
   - Select your preferred language from the Output Language in Optional Settings menu 
-  - Currently supports English, Japanese and Spanish
+  - Currently supports English, Japanese, Brazilian Portuguese and Spanish
   - Language selection affects analysis results, recommendations, and detailed explanations
   - Consistent localization across all file types (CloudFormation, Terraform, CDK, PDF documents, and architecture diagrams)
   - Interested in adding a new language? Check our [localization guide](/localization/README.md) for detailed instructions
@@ -75,8 +75,7 @@ Additionally, an **interactive Analyzer Assistant chatbot** enables users to ask
   - ZIP archives containing infrastructure code
 - Upload and analyze architectural documentation in PDF format:
   - PDF documents (up to 5 files, max 4.5MB each)
-  - Only flowing text will be extracted from the PDF, embedded images will not be included.
-    - As of May 2025, Bedrock InvokeModel and Converse APIs does not support extracting embedded images from the PDF. This will be updated once supported.
+  - With the recent ["Citations API and PDF support for Claude models"](https://aws.amazon.com/about-aws/whats-new/2025/06/citations-api-pdf-claude-models-amazon-bedrock/), the analyzer is now able to analyze text, charts and visuals (e.g. embedded images and diagrams) from the PDF documents.
 - Add supporting documents (PDF, TXT, PNG, JPEG) to provide additional context for analysis
 - Generate IaC templates from architecture diagrams
 - Real-time analysis against Well-Architected best practices
