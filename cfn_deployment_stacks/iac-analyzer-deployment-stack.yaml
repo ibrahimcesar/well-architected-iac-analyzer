@@ -17,13 +17,13 @@ Parameters:
   # Authentication Settings
   Authentication:
     Type: String
-    Default: 'False'
+    Default: 'True'
     AllowedValues: ['True', 'False']
     Description: 'Enable authentication for the application'
   
   AuthType:
     Type: String
-    Default: 'none'
+    Default: 'new-cognito'
     AllowedValues: ['none', 'new-cognito', 'existing-cognito', 'oidc']
     Description: 'Authentication type to use (none, new-cognito, existing-cognito, oidc). Required when Authentication is True.'
   
