@@ -1,14 +1,40 @@
-import React from 'react';
+import React, { ReactNode } from 'react';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import { vscDarkPlus } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import './CodeBlock.css';
 
 interface CodeBlockProps {
-  children: string;
+  children?: ReactNode;
   className?: string;
 }
 
 const CodeBlock: React.FC<CodeBlockProps> = ({ children, className }) => {
+  // Convert ReactNode to string safely
+  const getStringContent = (node: ReactNode): string => {
+    if (typeof node === 'string') {
+      return node;
+    }
+    if (typeof node === 'number') {
+      return String(node);
+    }
+    if (React.isValidElement(node)) {
+      // If it's a React element, try to extract text content
+      if (typeof node.props.children === 'string') {
+        return node.props.children;
+      }
+      if (Array.isArray(node.props.children)) {
+        return node.props.children.map(getStringContent).join('');
+      }
+      return getStringContent(node.props.children);
+    }
+    if (Array.isArray(node)) {
+      return node.map(getStringContent).join('');
+    }
+    // For null, undefined, boolean, or other types
+    return String(node || '');
+  };
+
+  const content = getStringContent(children);
   const match = /language-(\w+)/.exec(className || '');
   const language = match ? match[1] : '';
 
@@ -32,6 +58,11 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ children, className }) => {
     }
   };
 
+  // Handle empty content
+  if (!content.trim()) {
+    return <code className="inline-code"></code>;
+  }
+
   if (language) {
     return (
       <div className="code-block-container">
@@ -39,22 +70,16 @@ const CodeBlock: React.FC<CodeBlockProps> = ({ children, className }) => {
           style={vscDarkPlus}
           language={getLanguage(language)}
           PreTag="div"
-          customStyle={{
-            margin: 0,
-            borderRadius: '6px',
-            fontSize: '14px',
-            lineHeight: '1.4',
-          }}
         >
-          {String(children).replace(/\n$/, '')}
+          {content.replace(/\n$/, '')}
         </SyntaxHighlighter>
       </div>
     );
   }
 
   return (
-    <code className={`inline-code ${className || ''}`}>
-      {children}
+    <code className="inline-code">
+      {content}
     </code>
   );
 };
