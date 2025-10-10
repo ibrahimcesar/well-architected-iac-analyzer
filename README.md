@@ -140,6 +140,11 @@ Once complete, you'll find a new CloudFormation stack named **WA-IaC-Analyzer-{r
 
 1. If you enabled authentication with a custom domain:
    - Create a DNS record (CNAME or Alias) pointing to the ALB domain name
+   - **For custom domains**: Set the `CUSTOM_DOMAIN` environment variable and redeploy to update CORS configuration:
+     ```bash
+     export CUSTOM_DOMAIN=wa-analyzer.example.com
+     cdk deploy  # or re-run your deployment method
+     ```
 
 2. If you created a new Cognito user pool:
    - Navigate to the Amazon Cognito console
