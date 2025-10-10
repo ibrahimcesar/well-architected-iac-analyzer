@@ -398,6 +398,10 @@ class WAGenAIStack(Stack):
         KB_ID = kb.knowledge_base_id
 
         # Create S3 bucket and DynamoDB table for storage layer
+        # Get the ALB DNS name for CORS configuration
+        # This will be set after the frontend service is created
+        cors_origins = []
+        
         # Create S3 bucket for storing analysis results
         analysis_storage_bucket = s3.Bucket(
             self,
@@ -405,13 +409,6 @@ class WAGenAIStack(Stack):
             removal_policy=RemovalPolicy.DESTROY,
             auto_delete_objects=True,
             enforce_ssl=True,
-            cors=[
-                s3.CorsRule(
-                    allowed_methods=[s3.HttpMethods.GET, s3.HttpMethods.PUT],
-                    allowed_origins=["*"],
-                    allowed_headers=["*"],
-                )
-            ],
         )
 
         # Create DynamoDB table for metadata
@@ -957,6 +954,35 @@ class WAGenAIStack(Stack):
 
         # Get the ALB DNS name after frontend service is created
         alb_dns = frontend_service.load_balancer.load_balancer_dns_name
+
+        # Configure CORS for S3 bucket with specific origins
+        cors_origins = [f"http://{alb_dns}"]
+        if auth_config["enabled"]:
+            cors_origins.append(f"https://{alb_dns}")
+            
+        # Add custom domain support from environment variable
+        custom_domain = os.environ.get("CUSTOM_DOMAIN", "")
+        if custom_domain:
+            cors_origins.extend([f"http://{custom_domain}", f"https://{custom_domain}"])
+            
+        # Add CORS configuration to the S3 bucket
+        cfn_bucket = analysis_storage_bucket.node.default_child
+        cfn_bucket.cors_configuration = {
+            "corsRules": [
+                {
+                    "allowedMethods": ["GET", "PUT"],
+                    "allowedOrigins": cors_origins,
+                    "allowedHeaders": [
+                        "Content-Type",
+                        "Content-Length",
+                        "Authorization",
+                        "x-amz-date",
+                        "x-amz-security-token"
+                    ],
+                    "maxAge": 3000
+                }
+            ]
+        }
 
         # Configure health check for ALB
         frontend_service.target_group.configure_health_check(path="/healthz")
