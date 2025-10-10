@@ -7,6 +7,7 @@ import { ChatBubbleAvatar, Actions } from './utils/common-components';
 import { Box } from '@cloudscape-design/components';
 import { AUTHORS, fileTokenGroupI18nStrings } from './utils/config';
 import ReactMarkdown from 'react-markdown';
+import CodeBlock from '../utils/CodeBlock';
 import { useLanguage } from '../../contexts/LanguageContext';
 import './styles.css';
 
@@ -35,7 +36,13 @@ export const ChatMessage: React.FC<ChatMessageProps> = ({ message, hideAvatar = 
                         <Box color="text-status-inactive">{strings.chat.generatingResponse}</Box>
                     ) : authorId === 'gen-ai' ? (
                         <div className="markdown-content">
-                            <ReactMarkdown>{content}</ReactMarkdown>
+                            <ReactMarkdown
+                                components={{
+                                    code: CodeBlock
+                                }}
+                            >
+                                {content}
+                            </ReactMarkdown>
                         </div>
                     ) : (
                         content
