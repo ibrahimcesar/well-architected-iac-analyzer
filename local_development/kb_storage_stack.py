@@ -266,13 +266,6 @@ class KBStorageStack(Stack):
                 removal_policy=RemovalPolicy.DESTROY,
                 auto_delete_objects=True,
                 enforce_ssl=True,
-                cors=[
-                    s3.CorsRule(
-                        allowed_methods=[s3.HttpMethods.GET, s3.HttpMethods.PUT],
-                        allowed_origins=["*"],
-                        allowed_headers=["*"],
-                    )
-                ],
             )
 
             # Create DynamoDB table for metadata

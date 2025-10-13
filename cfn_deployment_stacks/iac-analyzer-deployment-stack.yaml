@@ -18,7 +18,7 @@ Parameters:
   Authentication:
     Type: String
     Default: 'True'
-    AllowedValues: ['True', 'False']
+    AllowedValues: ['True', 'False (Not Recommended)']
     Description: 'Enable authentication for the application'
   
   AuthType:
