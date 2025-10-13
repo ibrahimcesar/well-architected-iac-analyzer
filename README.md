@@ -124,7 +124,7 @@ You must enable **AWS Bedrock Model Access** to the following LLM models in your
 4. On the "Specify stack details" page. Enter or change the stack name, then:
    - Change the stack parameters as needed. Check the [CloudFormation Configuration Parameters](#cloudFormation-configuration-parameters) section below for details
 
-     - **Security Note:** By default, the stack deploys with a Public Application Load Balancer (internet-facing) without authentication enabled. It's strongly recommended to enable authentication to properly secure your internet-facing application.
+     - **Security Note:** By default, the stack deploys with a Public Application Load Balancer (internet-facing) with authentication enabled. For maximum security, we strongly recommend keeping authentication enabled for internet-facing deployments. If you disable authentication, your application will be publicly accessible without any security controls.
 
      - **Model Selection Note:** The tool currently defaults to Claude 3.5 Sonnet V2. If you want to use Claude 3.7 Sonnet, you'll need to explicitly add the model ID in the stack "Amazon Bedrock Model ID" configuration parameter (e.g., for US regions: `us.anthropic.claude-3-7-sonnet-20250219-v1:0`). Please note that Claude 3.7 Sonnet is not available in all AWS regions, so verify availability in your region before deployment.
 
@@ -140,11 +140,6 @@ Once complete, you'll find a new CloudFormation stack named **WA-IaC-Analyzer-{r
 
 1. If you enabled authentication with a custom domain:
    - Create a DNS record (CNAME or Alias) pointing to the ALB domain name
-   - **For custom domains**: Set the `CUSTOM_DOMAIN` environment variable and redeploy to update CORS configuration:
-     ```bash
-     export CUSTOM_DOMAIN=wa-analyzer.example.com
-     cdk deploy  # or re-run your deployment method
-     ```
 
 2. If you created a new Cognito user pool:
    - Navigate to the Amazon Cognito console
@@ -343,7 +338,7 @@ After successful deployment, you can find the Application Load Balancer (ALB) DN
     * VPN connection
     * AWS Direct Connect
     * Other network connectivity solutions
-  - ⚠️ **Security Warning**: If you select `True` with authentication disabled, your application will be publicly accessible without authentication. For public-facing deployments, we strongly recommend enabling authentication.
+  - ⚠️ **Security Warning**: By default, authentication is enabled for secure access. If you disable authentication while using a public load balancer (`True`), your application will be publicly accessible without any security controls. We strongly recommend keeping authentication enabled for public-facing deployments.
 
 - **Amazon Bedrock Model ID** (`ModelId`)
   - Default: `anthropic.claude-3-5-sonnet-20241022-v2:0` (Claude 3.5 Sonnet v2)
@@ -353,14 +348,14 @@ After successful deployment, you can find the Application Load Balancer (ALB) DN
 ### Authentication Settings
 
 - **Enable Authentication** (`Authentication`)
-  - `False` (Default): No authentication required to access the application
-  - `True`: Enables authentication via the selected method
+  - `True` (Default): Enables authentication via the selected method
+  - `False` (Not Recommended): No authentication required to access the application
 
 - **Authentication Method** (`AuthType`)
-  - `none` (Default): No authentication
-  - `new-cognito`: Creates a new Amazon Cognito user pool
+  - `new-cognito` (Default): Creates a new Amazon Cognito user pool
   - `existing-cognito`: Uses an existing Amazon Cognito user pool
   - `oidc`: Uses an OpenID Connect provider (Auth0, Okta, etc.)
+  - `none` (Not Recommended): No authentication
 
 - **SSL Certificate ARN** (`CertificateArn`)
   - Required when `Authentication` is set to `True`
@@ -473,11 +468,11 @@ To access an internal load balancer, you will need to be in the private network 
 * AWS Direct Connect
 * Other network connectivity solutions
 
-⚠️ **Security Warning**: Since the load balancer is **internet-facing** by default, it's strongly recommended to enable the Authentication Options as per below. Otherwise, the application and all its functionalities will be accessible directly through the Internet without authentication. Proceed with caution and understand the security implications.
+⚠️ **Security Warning**: The load balancer is **internet-facing** by default with authentication enabled for security. We strongly recommend keeping authentication enabled for internet-facing deployments. If you disable authentication (by setting `authentication = False`), the application and all its functionalities will be accessible directly through the Internet without any security controls. Proceed with caution and understand the security implications.
 
 ### Authentication Options
 
-> **Note:** Before enabling authentication, make sure you have a valid AWS Certificate Manager (ACM) certificate covering the DNS domain name (CNAME or Alias) that you plan to use to point to this application's ALB.
+> **Note:** Before defining authentication settings, make sure you have a valid AWS Certificate Manager (ACM) certificate covering the DNS domain name (CNAME or Alias) that you plan to use to point to this application's ALB.
 >
 > **For Example:**
 > * If you own the domain `*.example.com`
@@ -489,16 +484,7 @@ To access an internal load balancer, you will need to be in the private network 
 
 The application can be deployed with different authentication configurations managed via the config.ini file.
 
-**A. Default Deployment (No Authentication)**
-- HTTP listener only
-- Can be deployed as public or private ALB
-- Example settings in config.ini:
-  ```ini
-  authentication = False
-  auth_type = none
-  ```
-
-**B. New Cognito User Pool**
+**A. New Cognito User Pool (Default Deployment)**
 - HTTPS listener with AWS Cognito authentication
 - Creates a new Cognito user pool
 - Self-signup disabled by default
@@ -513,7 +499,7 @@ The application can be deployed with different authentication configurations man
   logout_url = https://wa-analyzer.example.com
   ```
 
-**C. Existing Cognito User Pool**
+**B. Existing Cognito User Pool**
 - HTTPS listener with existing AWS Cognito authentication
 - Uses an existing Cognito user pool
 - Example settings in config.ini:
@@ -529,9 +515,18 @@ The application can be deployed with different authentication configurations man
   existing_cognito_logout_url = https://wa-analyzer.example.com
   ```
 
-**D. OpenID Connect (OIDC)**
+**C. OpenID Connect (OIDC)**
 - HTTPS listener with OIDC authentication
 - Compatible with any OIDC-compliant identity provider
+
+**D. No Authentication (Not Recommended)**
+- HTTP listener only
+- Can be deployed as public or private ALB
+- Example settings in config.ini:
+  ```ini
+  authentication = False
+  auth_type = none
+  ```
 
 If you plan to use OIDC authentication (`auth_type = oidc`), follow these steps:
 
