@@ -643,18 +643,23 @@ Resources:
                 #!/bin/bash
                 set -e
                 
-                # Check if CDKToolkit stack exists and is corrupted
-                if aws cloudformation describe-stacks --stack-name CDKToolkit --region $REGION 2>/dev/null | grep -q "UPDATE_ROLLBACK_COMPLETE\|ROLLBACK_COMPLETE"; then
-                    echo "Deleting corrupted CDKToolkit stack..."
+                # Clean up orphaned CDK S3 bucket FIRST
+                BUCKET_NAME="cdk-hnb659fds-assets-$AWS_ACCOUNT-$REGION"
+                if aws s3api head-bucket --bucket $BUCKET_NAME 2>/dev/null; then
+                    echo "Cleaning up orphaned CDK S3 bucket: $BUCKET_NAME"
+                    aws s3 rm s3://$BUCKET_NAME --recursive 2>/dev/null || true
+                    aws s3api delete-bucket --bucket $BUCKET_NAME 2>/dev/null || true
+                fi
+                
+                # Check if CDKToolkit stack exists and delete it
+                if aws cloudformation describe-stacks --stack-name CDKToolkit --region $REGION 2>/dev/null; then
+                    echo "Deleting existing CDKToolkit stack..."
                     aws cloudformation delete-stack --stack-name CDKToolkit --region $REGION
                     aws cloudformation wait stack-delete-complete --stack-name CDKToolkit --region $REGION
                 fi
                 
-                # Bootstrap with fresh stack
-                if ! cdk bootstrap aws://$AWS_ACCOUNT/$REGION; then
-                    echo "Standard bootstrap failed, trying force bootstrap..."
-                    cdk bootstrap --force --trust-for-lookup aws://$AWS_ACCOUNT/$REGION
-                fi
+                # Bootstrap with minimal configuration - no trust policies
+                cdk bootstrap --no-previous-parameters aws://$AWS_ACCOUNT/$REGION
                 EOF
                 
                 # Replace the bootstrap line in deploy script
