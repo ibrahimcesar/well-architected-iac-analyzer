@@ -421,7 +421,9 @@ class WAGenAIStack(Stack):
             ),
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             removal_policy=RemovalPolicy.DESTROY,
-            point_in_time_recovery=True,
+            point_in_time_recovery_specification=dynamodb.PointInTimeRecoverySpecification(
+                point_in_time_recovery_enabled=True
+            ),
         )
 
         # Create DynamoDB table for lens metadata
@@ -433,7 +435,9 @@ class WAGenAIStack(Stack):
             ),
             billing_mode=dynamodb.BillingMode.PAY_PER_REQUEST,
             removal_policy=RemovalPolicy.DESTROY,
-            point_in_time_recovery=True,
+            point_in_time_recovery_specification=dynamodb.PointInTimeRecoverySpecification(
+                point_in_time_recovery_enabled=True
+            ),
         )
 
         # Create S3 bucket where well architected reference docs are stored
@@ -775,7 +779,7 @@ class WAGenAIStack(Stack):
         public_subnets = vpc.select_subnets(subnet_type=ec2.SubnetType.PUBLIC)
 
         # Create ECS Cluster
-        ecs_cluster = ecs.Cluster(self, "AppCluster", vpc=vpc, container_insights=True)
+        ecs_cluster = ecs.Cluster(self, "AppCluster", vpc=vpc, container_insights_v2=True)
 
         # Add ECS Service Discovery namespace
         namespace = servicediscovery.PrivateDnsNamespace(
