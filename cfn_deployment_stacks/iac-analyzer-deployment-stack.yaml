@@ -387,7 +387,8 @@ Resources:
     Type: 'AWS::EC2::Instance'
     CreationPolicy:
       ResourceSignal:
-        Timeout: PT1H30M
+        Timeout: PT2H
+        Count: 1
     Metadata:
       AWS::CloudFormation::Init:
         configSets:
@@ -630,6 +631,21 @@ Resources:
                 # Update the configuration
                 /home/ec2-user/update-config.sh
                 
+                # Fix CDK bootstrap issue in deploy script - delete corrupted stack first
+                sed -i '/cdk bootstrap aws:\/\/$AWS_ACCOUNT\/$REGION/c\
+                # Check if CDKToolkit stack exists and is corrupted\
+                if aws cloudformation describe-stacks --stack-name CDKToolkit --region $REGION 2>/dev/null | grep -q "UPDATE_ROLLBACK_COMPLETE\\|ROLLBACK_COMPLETE"; then\
+                    echo "Deleting corrupted CDKToolkit stack..."\
+                    aws cloudformation delete-stack --stack-name CDKToolkit --region $REGION\
+                    aws cloudformation wait stack-delete-complete --stack-name CDKToolkit --region $REGION\
+                fi\
+                \
+                # Bootstrap with fresh stack\
+                if ! cdk bootstrap aws://$AWS_ACCOUNT/$REGION; then\
+                    echo "Standard bootstrap failed, trying force bootstrap..."\
+                    cdk bootstrap --force --trust-for-lookup aws://$AWS_ACCOUNT/$REGION\
+                fi' deploy-wa-analyzer.sh
+                
                 chmod +x deploy-wa-analyzer.sh
                 export AWS_REGION=${AWS::Region}
                 ./deploy-wa-analyzer.sh -r ${AWS::Region} -c docker -a ${AWS::StackName}
@@ -724,10 +740,13 @@ Resources:
       UserData:
         Fn::Base64: !Sub |
           #!/bin/bash -xe
-          # Create log file with exec redirection
+          # Exit on any error and log everything
+          set -e
+          
+          # Create log file with exec redirection for better error reporting
           touch /var/log/user-data.log
           chmod 666 /var/log/user-data.log
-          exec > >(tee -a /var/log/user-data.log) 2>&1
+          exec > >(tee -a /var/log/user-data.log|logger -t user-data -s 2>/dev/console) 2>&1
 
           echo "Starting UserData execution at $(date)"
 
@@ -747,6 +766,11 @@ Resources:
             else
               echo "Update failed, retrying in 10 seconds..."
               sleep 10
+              if [ $i -eq 5 ]; then
+                echo "Failed to update after 5 attempts"
+                /opt/aws/bin/cfn-signal -e 1 --stack ${AWS::StackName} --resource EC2Instance --region ${AWS::Region}
+                exit 1
+              fi
             fi
           done
           
@@ -759,6 +783,11 @@ Resources:
             else
               echo "cfn-bootstrap installation failed, retrying in 10 seconds..."
               sleep 10
+              if [ $i -eq 5 ]; then
+                echo "Failed to install cfn-bootstrap after 5 attempts"
+                /opt/aws/bin/cfn-signal -e 1 --stack ${AWS::StackName} --resource EC2Instance --region ${AWS::Region}
+                exit 1
+              fi
             fi
           done
 
@@ -771,6 +800,11 @@ Resources:
               break
             fi
             sleep 10
+            if [ $i -eq 6 ]; then
+              echo "Network connectivity failed after 6 attempts"
+              /opt/aws/bin/cfn-signal -e 1 --stack ${AWS::StackName} --resource EC2Instance --region ${AWS::Region}
+              exit 1
+            fi
           done
           
           # Initialize cfn-init with retries
@@ -786,6 +820,11 @@ Resources:
             else
               echo "cfn-init failed with status $CFN_INIT_RESULT, retrying in 30 seconds..."
               sleep 30
+              if [ $i -eq 3 ]; then
+                echo "cfn-init failed after 3 attempts"
+                /opt/aws/bin/cfn-signal -e 1 --stack ${AWS::StackName} --resource EC2Instance --region ${AWS::Region}
+                exit 1
+              fi
             fi
           done
 
