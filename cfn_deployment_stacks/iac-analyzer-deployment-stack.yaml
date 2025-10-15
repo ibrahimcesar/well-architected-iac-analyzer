@@ -473,8 +473,11 @@ Resources:
                   dnf clean all >> /var/log/user-data.log 2>&1
                   
                   # Try to install packages
-                  if dnf install -y git docker python3.11 python3.11-pip pip nodejs20 npm aws-cli aws-cfn-bootstrap amazon-cloudwatch-agent >> /var/log/user-data.log 2>&1; then
+                  if dnf install -y git docker python3.11 python3.11-pip pip nodejs npm aws-cli aws-cfn-bootstrap amazon-cloudwatch-agent >> /var/log/user-data.log 2>&1; then
                     echo "Package installation successful!" >> /var/log/user-data.log
+                    # Install Node.js 20 LTS using NodeSource repository
+                    curl -fsSL https://rpm.nodesource.com/setup_20.x | bash - >> /var/log/user-data.log 2>&1
+                    dnf install -y nodejs >> /var/log/user-data.log 2>&1
                     exit 0
                   else
                     echo "Package installation failed. Retrying in $RETRY_DELAY seconds..." >> /var/log/user-data.log
@@ -544,8 +547,12 @@ Resources:
                 sed -i "s/^model_id = .*$/model_id = ${ModelId}/" $CONFIG_FILE
                 sed -i "s/^public_load_balancer = .*$/public_load_balancer = ${PublicLoadBalancer}/" $CONFIG_FILE
                 
-                # Update authentication settings
-                sed -i "s/^authentication = .*$/authentication = ${Authentication}/" $CONFIG_FILE
+                # Update authentication settings - handle "False (Not Recommended)" case
+                if [ "${Authentication}" == "False (Not Recommended)" ]; then
+                  sed -i "s/^authentication = .*$/authentication = False/" $CONFIG_FILE
+                else
+                  sed -i "s/^authentication = .*$/authentication = ${Authentication}/" $CONFIG_FILE
+                fi
                 sed -i "s/^auth_type = .*$/auth_type = ${AuthType}/" $CONFIG_FILE
                 
                 # Update certificate ARN if specified
@@ -631,22 +638,29 @@ Resources:
                 # Update the configuration
                 /home/ec2-user/update-config.sh
                 
-                # Fix CDK bootstrap issue in deploy script - delete corrupted stack first
-                sed -i '/cdk bootstrap aws:\/\/$AWS_ACCOUNT\/$REGION/c\
-                # Check if CDKToolkit stack exists and is corrupted\
-                if aws cloudformation describe-stacks --stack-name CDKToolkit --region $REGION 2>/dev/null | grep -q "UPDATE_ROLLBACK_COMPLETE\\|ROLLBACK_COMPLETE"; then\
-                    echo "Deleting corrupted CDKToolkit stack..."\
-                    aws cloudformation delete-stack --stack-name CDKToolkit --region $REGION\
-                    aws cloudformation wait stack-delete-complete --stack-name CDKToolkit --region $REGION\
-                fi\
-                \
-                # Bootstrap with fresh stack\
-                if ! cdk bootstrap aws://$AWS_ACCOUNT/$REGION; then\
-                    echo "Standard bootstrap failed, trying force bootstrap..."\
-                    cdk bootstrap --force --trust-for-lookup aws://$AWS_ACCOUNT/$REGION\
-                fi' deploy-wa-analyzer.sh
+                # Create fixed bootstrap script
+                cat > fix-bootstrap.sh << 'EOF'
+                #!/bin/bash
+                set -e
                 
-                chmod +x deploy-wa-analyzer.sh
+                # Check if CDKToolkit stack exists and is corrupted
+                if aws cloudformation describe-stacks --stack-name CDKToolkit --region $REGION 2>/dev/null | grep -q "UPDATE_ROLLBACK_COMPLETE\|ROLLBACK_COMPLETE"; then
+                    echo "Deleting corrupted CDKToolkit stack..."
+                    aws cloudformation delete-stack --stack-name CDKToolkit --region $REGION
+                    aws cloudformation wait stack-delete-complete --stack-name CDKToolkit --region $REGION
+                fi
+                
+                # Bootstrap with fresh stack
+                if ! cdk bootstrap aws://$AWS_ACCOUNT/$REGION; then
+                    echo "Standard bootstrap failed, trying force bootstrap..."
+                    cdk bootstrap --force --trust-for-lookup aws://$AWS_ACCOUNT/$REGION
+                fi
+                EOF
+                
+                # Replace the bootstrap line in deploy script
+                sed -i 's|cdk bootstrap aws://$AWS_ACCOUNT/$REGION|bash fix-bootstrap.sh|' deploy-wa-analyzer.sh
+                
+                chmod +x deploy-wa-analyzer.sh fix-bootstrap.sh
                 export AWS_REGION=${AWS::Region}
                 ./deploy-wa-analyzer.sh -r ${AWS::Region} -c docker -a ${AWS::StackName}
                 exit $?

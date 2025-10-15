@@ -779,7 +779,7 @@ class WAGenAIStack(Stack):
         public_subnets = vpc.select_subnets(subnet_type=ec2.SubnetType.PUBLIC)
 
         # Create ECS Cluster
-        ecs_cluster = ecs.Cluster(self, "AppCluster", vpc=vpc, container_insights_v2=True)
+        ecs_cluster = ecs.Cluster(self, "AppCluster", vpc=vpc, container_insights=ecs.ContainerInsights.ENABLED)
 
         # Add ECS Service Discovery namespace
         namespace = servicediscovery.PrivateDnsNamespace(
