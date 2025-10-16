@@ -643,13 +643,14 @@ Resources:
                 #!/bin/bash
                 set -e
                 
-                # Clean up orphaned CDK S3 bucket FIRST
-                BUCKET_NAME="cdk-hnb659fds-assets-$AWS_ACCOUNT-$REGION"
-                if aws s3api head-bucket --bucket $BUCKET_NAME 2>/dev/null; then
-                    echo "Cleaning up orphaned CDK S3 bucket: $BUCKET_NAME"
-                    aws s3 rm s3://$BUCKET_NAME --recursive 2>/dev/null || true
-                    aws s3api delete-bucket --bucket $BUCKET_NAME 2>/dev/null || true
-                fi
+                # Clean up orphaned CDK S3 buckets
+                for BUCKET_NAME in $(aws s3api list-buckets --query "Buckets[?starts_with(Name, 'cdk-')].Name" --output text 2>/dev/null || true); do
+                    if [ -n "$BUCKET_NAME" ]; then
+                        echo "Cleaning up orphaned CDK S3 bucket: $BUCKET_NAME"
+                        aws s3 rm s3://$BUCKET_NAME --recursive 2>/dev/null || true
+                        aws s3api delete-bucket --bucket $BUCKET_NAME 2>/dev/null || true
+                    fi
+                done
                 
                 # Check if CDKToolkit stack exists and delete it
                 if aws cloudformation describe-stacks --stack-name CDKToolkit --region $REGION 2>/dev/null; then
@@ -812,15 +813,15 @@ Resources:
 
           # Wait for network to be fully functional
           echo "Waiting for networking to stabilize..."
-          for i in {1..6}; do
+          for i in {1..30}; do
             echo "Network check attempt $i..."
             if ping -c 1 amazon.com > /dev/null 2>&1; then
               echo "Network is up!"
               break
             fi
             sleep 10
-            if [ $i -eq 6 ]; then
-              echo "Network connectivity failed after 6 attempts"
+            if [ $i -eq 30 ]; then
+              echo "Network connectivity failed after 30 attempts"
               /opt/aws/bin/cfn-signal -e 1 --stack ${AWS::StackName} --resource EC2Instance --region ${AWS::Region}
               exit 1
             fi
